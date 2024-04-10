@@ -26,10 +26,10 @@ local display_exrc_loaded = {
 
 local display_exrc_dir = {
     format_item = function(dir)
-        return vim.fs.joinpath(dir, config.exrc_name)
+        return utils.joinpath(dir, config.exrc_name)
     end,
     telescope_display = function(entry, _display)
-        return vim.fs.joinpath(entry.value, config.exrc_name)
+        return utils.joinpath(entry.value, config.exrc_name)
     end,
 }
 
@@ -276,14 +276,14 @@ M.exrc_create = exrc_do {
         dirs = vim.tbl_map(utils.clean_path, dirs)
         dirs = utils.unique(dirs)
         dirs = vim.tbl_filter(function(dir)
-            return vim.fn.filereadable(vim.fs.joinpath(dir, config.exrc_name)) == 0
+            return vim.fn.filereadable(utils.joinpath(dir, config.exrc_name)) == 0
         end, dirs)
 
         table.sort(dirs)
         return dirs
     end,
     on_select = function(dir)
-        vim.cmd.edit(vim.fs.joinpath(dir, config.exrc_name))
+        vim.cmd.edit(utils.joinpath(dir, config.exrc_name))
     end,
 }
 

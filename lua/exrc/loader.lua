@@ -206,7 +206,7 @@ end
 function M.load_from_dirs(dirs, try_now)
     local candidates = vim.iter(dirs)
         :map(function(dir)
-            return vim.fs.joinpath(dir, config.exrc_name)
+            return utils.joinpath(dir, config.exrc_name)
         end)
         :filter(function(exrc)
             return vim.fn.filereadable(exrc) == 1
@@ -227,7 +227,7 @@ end
 --- VimEnter handler that loads exrc files
 function M.on_vim_enter()
     local cwd = vim.fn.getcwd(-1, -1)
-    local exrc = vim.fs.joinpath(cwd, config.exrc_name)
+    local exrc = utils.joinpath(cwd, config.exrc_name)
     local exists = vim.fn.filereadable(exrc) == 1
     log.trace('exrc.on_vim_enter(%s): %s', cwd, exists and 'found' or 'not found')
     if exists then

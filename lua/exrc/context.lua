@@ -61,7 +61,7 @@ local function fs_find_up(start_dir, name, max_up, stop)
         if dir == stop or i > max_up then
             break
         end
-        add_if_exists(vim.fs.joinpath(dir, name))
+        add_if_exists(utils.joinpath(dir, name))
         i = i + 1
     end
 

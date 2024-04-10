@@ -174,4 +174,9 @@ function M.unique(list)
     end, list)
 end
 
+-- COMPAT: to work with nvim 0.9
+M.joinpath = vim.fs.joinpath or function(...)
+    return (table.concat({ ... }, '/'):gsub('//+', '/'))
+end
+
 return M
