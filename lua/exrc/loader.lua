@@ -189,7 +189,10 @@ function M.ui_load(candidates, try_now)
         vim.api.nvim_create_autocmd('CursorHold', {
             callback = function()
                 if M.is_ui_ready() then
-                    resume()
+                    local ok, err = pcall(resume)
+                    if not ok then
+                        log.error('Could not resume ui_load coroutine: %s', err)
+                    end
                     return true -- remove autocmd
                 end
             end,
