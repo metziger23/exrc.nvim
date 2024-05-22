@@ -3,6 +3,7 @@ local M = {}
 local loader = require('exrc.loader')
 local log = require('exrc.log')
 local utils = require('exrc.utils')
+local Restart = require('exrc.lsp.restart')
 
 --- Handler called in on_new_config hook that should update config in-place.
 --- Called only after root_dir/client_name matching.
@@ -12,12 +13,6 @@ local utils = require('exrc.utils')
 ---@type table<string, table<string, exrc.lsp.OnNewConfig>>
 M.handlers = {}
 
-local function dir_matches(top_dir, dir)
-    dir = utils.clean_path(dir)
-    top_dir = utils.clean_path(top_dir)
-    return vim.startswith(dir, top_dir)
-end
-
 --- lspconfig on_new_config hook that will call all registered handlers
 function M.on_new_config(config, root_dir)
     ---@type { exrc_dir: string, handler: exrc.lsp.OnNewConfig }[]
@@ -25,7 +20,7 @@ function M.on_new_config(config, root_dir)
 
     for exrc_path, handlers in pairs(M.handlers) do
         local exrc_dir = vim.fs.dirname(exrc_path)
-        if dir_matches(exrc_dir, root_dir) then
+        if utils.dir_matches(exrc_dir, root_dir) then
             for client_name, handler in pairs(handlers) do
                 if config.name == client_name then
                     table.insert(matching, {
@@ -55,55 +50,6 @@ function M.on_new_config(config, root_dir)
     end
 end
 
--- Adapted from lspconfig :LspRestart
-local function restart_clients(clients)
-    local detach_clients = {}
-    for _, client in ipairs(clients) do
-        client.stop()
-        if vim.tbl_count(client.attached_buffers) > 0 then
-            detach_clients[client.name] = { client, client.attached_buffers }
-        end
-    end
-    local timer = vim.loop.new_timer()
-    timer:start(
-        500,
-        100,
-        vim.schedule_wrap(function()
-            for client_name, tuple in pairs(detach_clients) do
-                local client, attached_buffers = unpack(tuple)
-                if client.is_stopped() then
-                    for buf in pairs(attached_buffers) do
-                        require('lspconfig.configs')[client_name].launch(buf)
-                    end
-                    detach_clients[client_name] = nil
-                end
-            end
-
-            if next(detach_clients) == nil and not timer:is_closing() then
-                timer:close()
-            end
-        end)
-    )
-end
-
-local function restart_clients_for(exrc_path)
-    local exrc_dir = vim.fs.dirname(exrc_path)
-    -- restart all matching clients that are already running
-    local to_restart = {}
-    for _, client in ipairs(vim.lsp.get_clients()) do
-        if dir_matches(exrc_dir, client.config.root_dir) then
-            if M.handlers[exrc_path][client.config.name] then
-                table.insert(to_restart, client)
-            end
-        end
-    end
-    return function()
-        if #to_restart > 0 then
-            log.debug('exrc.lsp.setup: restarting %d clients', #to_restart)
-            restart_clients(to_restart)
-        end
-    end
-end
 
 --- Call this as a method of exrc.Context to get correct exrc_path
 ---@param exrc_path string
@@ -123,12 +69,12 @@ function M.setup(exrc_path, handlers)
     M.handlers[exrc_path] = handlers
 
     -- restart all matching clients that are already running
-    restart_clients_for(exrc_path)()
+    Restart:new(exrc_path, vim.tbl_keys(M.handlers[exrc_path])):add()
 
     loader.add_on_unload(exrc_path, function()
-        local restart = restart_clients_for(exrc_path)
+        local restart = Restart:new(exrc_path, vim.tbl_keys(M.handlers[exrc_path]))
         M.handlers[exrc_path] = nil
-        restart()
+        restart:add()
     end)
 end
 

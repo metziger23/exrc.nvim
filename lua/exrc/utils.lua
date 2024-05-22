@@ -179,4 +179,12 @@ M.joinpath = vim.fs.joinpath or function(...)
     return (table.concat({ ... }, '/'):gsub('//+', '/'))
 end
 
+--- Check if top_dir is parent of dir
+---@param top_dir string
+---@param dir string
+---@return boolean
+function M.dir_matches(top_dir, dir)
+    return vim.startswith(M.clean_path(dir), M.clean_path(top_dir))
+end
+
 return M
