@@ -243,9 +243,11 @@ function M.on_dir_changed()
     ---@type { scope: 'global'|'tabpage'|'window', cwd: string, changed_window: boolean }
     local event = vim.api.nvim_get_vvar('event')
     local cwd = vim.fn.fnamemodify(event.cwd, ':p')
-    if (event.scope == 'global' or event.scope == 'tabpage') and not event.changed_window then
-        log.trace('exrc.on_dir_changed(%s)', cwd)
-        coroutine.wrap(M.load_from_dirs) { cwd }
+    local exrc = utils.joinpath(cwd, config.exrc_name)
+    local exists = vim.fn.filereadable(exrc) == 1
+    log.trace('exrc.on_dir_changed(%s): %s', cwd, exists and 'found' or 'not found')
+    if exists then
+        M.load(exrc) -- do not use ui
     end
 end
 
